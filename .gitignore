@@ -1,0 +1,22 @@
+# Local environments, packages, and generated output
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+build/
+.arduino/
+pc_tracker/models/
+*.onnx
+*.zip
+*.download
+*.bin
+*.elf
+*.o
+*.log
+.env
+.env.*
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
