@@ -116,7 +116,7 @@ machine-wide setting. Only run scripts you have reviewed and trust.
 
 ## 2. Upload the ESP32 firmware
 
-In Arduino IDE, install **esp32 by Espressif Systems, version 2.0.17** using
+In Arduino IDE, install **esp32 by Espressif Systems, version 3.3.11** using
 Boards Manager. If necessary, add this URL to Additional Boards Manager URLs:
 
 ```text
