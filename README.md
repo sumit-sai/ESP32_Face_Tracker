@@ -79,16 +79,11 @@ which does not provide internet access.
 
 These pins provide Windows Python 3.14 wheels while retaining CUDA 12/cuDNN 9.
 `--only-binary=:all:` prevents pip from attempting local source compilation.
-The original physical tracking and 27.2 ms inference result below used Python
-3.12 with the earlier dependency versions. GPU inference and physical tracking
-must be rechecked after this Python 3.14 dependency migration; wheel availability
-alone does not verify runtime compatibility. Use standard CPython, not the
-experimental free-threaded build.
+Use standard CPython, not the experimental free-threaded build.
 
 The model downloader retrieves the official InsightFace model pack, extracts
 the detector, and records its source URL and SHA256 in `pc_tracker/models/`.
-Weights are not committed. See [third-party notices](THIRD_PARTY_NOTICES.md)
-for the pretrained model terms and camera-example attribution.
+Weights are not committed.
 
 Test inference without connecting to the robot:
 
@@ -117,11 +112,7 @@ machine-wide setting. Only run scripts you have reviewed and trust.
 ## 2. Upload the ESP32 firmware
 
 In Arduino IDE, install **esp32 by Espressif Systems, version 3.3.11** using
-Boards Manager. If necessary, add this URL to Additional Boards Manager URLs:
-
-```text
-https://espressif.github.io/arduino-esp32/package_esp32_index.json
-```
+Boards Manager.
 
 Open `firmware/PCFaceTrack/PCFaceTrack.ino`; keep all supporting files in that
 folder. Choose:
