@@ -3,9 +3,7 @@
 A pan-and-tilt camera that follows a face using an ESP32-S3 camera board and
 SCRFD face detection on an NVIDIA-equipped Windows PC. The ESP32 captures
 images and drives the servos; the PC selects a face and sends its position back
-over Wi-Fi. No cloud service or identity recognition is used.
-
-This repository contains only the final PC-controlled version.
+over Wi-Fi. 
 
 ## How it works
 
@@ -39,12 +37,7 @@ two SG90 servos, a pan-and-tilt mount, and an RTX 3050 Laptop GPU with 4 GB VRAM
 | Both servo red wires | Suitable regulated external 5 V supply |
 | Both servo brown/black wires | External supply ground |
 | ESP32 GND | Same ground |
-| ESP32 USB | Computer for programming/power |
 
-Servo current should come directly from the external supply, not through the
-ESP32 board. Never power servos from its 3.3 V pin. With USB powering the ESP32,
-leave external +5 V disconnected from the board. Leave flexible cable slack
-around both moving axes.
 
 The firmware commands both servos to nominal 90 degrees at startup, then stays
 paused until the PC enables tracking. Check your mount's physical clearance
@@ -70,12 +63,12 @@ run_tracker.ps1        Windows launcher with NVIDIA DLL path setup
 
 ## 1. Prepare the PC
 
-Install Python 3.12 (including the Windows `py` launcher) and an NVIDIA graphics
+Install standard 64-bit Python 3.14 (including the Windows `py` launcher) and an NVIDIA graphics
 driver. Open PowerShell in this repository's root folder, then run:
 
 ```powershell
-py -3.12 -m venv .\pc_tracker\.venv
-& .\pc_tracker\.venv\Scripts\python.exe -m pip install -r .\pc_tracker\requirements.txt
+py -3.14 -m venv .\pc_tracker\.venv
+& .\pc_tracker\.venv\Scripts\python.exe -m pip install --only-binary=:all: -r .\pc_tracker\requirements.txt
 & .\pc_tracker\.venv\Scripts\python.exe .\pc_tracker\download_model.py
 ```
 
@@ -83,6 +76,14 @@ The virtual environment isolates project dependencies. Requirements install
 OpenCV, NumPy, Requests, ONNX Runtime GPU, and NVIDIA runtime libraries. The
 downloads can be large. Download them before joining the ESP32's network,
 which does not provide internet access.
+
+These pins provide Windows Python 3.14 wheels while retaining CUDA 12/cuDNN 9.
+`--only-binary=:all:` prevents pip from attempting local source compilation.
+The original physical tracking and 27.2 ms inference result below used Python
+3.12 with the earlier dependency versions. GPU inference and physical tracking
+must be rechecked after this Python 3.14 dependency migration; wheel availability
+alone does not verify runtime compatibility. Use standard CPython, not the
+experimental free-threaded build.
 
 The model downloader retrieves the official InsightFace model pack, extracts
 the detector, and records its source URL and SHA256 in `pc_tracker/models/`.
@@ -201,21 +202,4 @@ mount upward. Different assemblies may require different signs and limits.
 PWM maps nominal 0..180 degrees to 1000..2000 microseconds. These are commanded
 positions and speed limits, not measured physical angles or speeds.
 
-## Validation and limitations
 
-The original project was tested by its builder: camera transfer, GPU inference,
-and physical tracking worked. A blank-frame test on the RTX 3050 Laptop GPU
-reported **27.2 ms average inference**. This is not end-to-end camera FPS and
-does not measure detection accuracy. Wi-Fi, JPEG conversion, lighting, motion
-blur, and pose affect results. Fully turned or obscured faces may be missed.
-
-This clean distribution preserves the final source files; earlier experiments,
-local toolchain configuration, virtual environments, weights, and build output
-are intentionally excluded. Create a fresh environment after cloning rather
-than copying a virtual environment from another machine.
-
-For `Resolve-Path` or missing-file errors, verify you are in the repository root.
-For `Expired frame` or stale-camera messages, inspect image age and connectivity.
-If GPIO movement is reversed, pause and correct the direction in `motion.h`.
-Only one PC tracker should control the camera at a time. Keep the control
-endpoints on the local robot network rather than exposing them to the internet.
