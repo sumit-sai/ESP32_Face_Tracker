@@ -6,6 +6,7 @@
 #include "esp_http_server.h"
 #include "esp_timer.h"
 #include "tracking.h"
+#include "eyes.h"
 
 void camera_init();
 WebServer control(80);
@@ -72,6 +73,7 @@ void setup() {
   if(!psramFound()){Serial.println("Enable OPI PSRAM");while(true)delay(1000);}
   bootId=esp_random();
   camera_init();
+  setupEyes();
   setupTracking(); // 90/90 startup; paused until the PC explicitly starts control
   WiFi.mode(WIFI_AP);
   if(!WiFi.softAP("RobotArm-Face","FaceCentre32")) {
@@ -111,6 +113,7 @@ void setup() {
     lastAcceptedId=id;
     // Normalize any camera resolution back to the original 320x240 controller units.
     submitObservation(true,found=="1",dx*159.5f,dy*119.5f,frame.capturedMs);
+    observeEyesFace(found=="1",frame.capturedMs);
     control.send(200,"text/plain","OK");
   });
   control.begin();
@@ -124,4 +127,9 @@ void setup() {
   Serial.println("PCFaceTrack ready: RobotArm-Face / FaceCentre32");
   Serial.println("Control http://192.168.4.1 ; frames http://192.168.4.1:81/frame");
 }
-void loop(){control.handleClient();delay(2);}
+void loop(){
+  control.handleClient();
+  MotionSnapshot motion = getMotion();
+  updateEyes(motion.pan, motion.tilt);
+  delay(2);
+}
