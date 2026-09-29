@@ -3,7 +3,8 @@
 A pan-and-tilt camera that follows a face using an ESP32-S3 camera board and
 SCRFD face detection on an NVIDIA-equipped Windows PC. The ESP32 captures
 images and drives the servos; the PC selects a face and sends its position back
-over Wi-Fi. 
+over Wi-Fi. An SSD1306 OLED displays animated RoboEyes that follow camera
+movement and react to finding or losing a face.
 
 ## How it works
 
@@ -24,11 +25,18 @@ ESP32 servos <-- face offsets ---- PC: smoothed face center
   the PC continues providing fresh observations.
 - Invalid, replayed, or expired observations are rejected. Camera/connection
   loss stops movement as the last valid frame ages past one second.
+- RoboEyes follows changes in commanded pan/tilt angles, including diagonals
+  and search sweeps. Each eye-direction axis returns toward center after
+  300 ms without movement; this uses servo commands, not position feedback.
+- Eyes start neutral, become happy when a face is detected, and use the
+  `TIRED` expression as a sad substitute one second after the last detected
+  face's capture timestamp. Automatic blinking remains on; random gaze is off.
 
 ## Hardware
 
 Tested with a Freenove ESP32-S3-WROOM camera board with 8 MB flash and OPI PSRAM,
-two SG90 servos, a pan-and-tilt mount, and an RTX 3050 Laptop GPU with 4 GB VRAM.
+two SG90 servos, a pan-and-tilt mount, a 128x64 I2C SSD1306 OLED at address
+`0x3C`, and an RTX 3050 Laptop GPU with 4 GB VRAM.
 
 | Connection | Destination |
 | --- | --- |
@@ -37,6 +45,10 @@ two SG90 servos, a pan-and-tilt mount, and an RTX 3050 Laptop GPU with 4 GB VRAM
 | Both servo red wires | Suitable regulated external 5 V supply |
 | Both servo brown/black wires | External supply ground |
 | ESP32 GND | Same ground |
+| OLED SDA | ESP32 GPIO 1 |
+| OLED SCL | ESP32 GPIO 2 |
+| OLED VCC | ESP32 3.3V |
+| OLED GND | ESP32 GND |
 
 
 The firmware commands both servos to nominal 90 degrees at startup, then stays
@@ -53,6 +65,10 @@ firmware/PCFaceTrack/
   board_config.h       Freenove-compatible camera configuration
   motion.h             Tracking and search controller
   tracking.h           PWM and motion task
+  eyes.cpp / eyes.h    OLED initialization, gaze, and face expressions
+  EYES_TEST.md         Hardware test checklist and direction tuning
+firmware/RoboEyesESP32Test/
+  RoboEyesESP32Test.ino Standalone display test with Serial mood commands
 pc_tracker/
   track.py             Camera receiver, preview, and control client
   detector.py          SCRFD decoding and target selection
@@ -123,6 +139,13 @@ Boards Manager. If necessary, add this URL to Additional Boards Manager URLs:
 https://espressif.github.io/arduino-esp32/package_esp32_index.json
 ```
 
+In Library Manager, install:
+
+- **Adafruit SSD1306**: the OLED driver.
+- **Adafruit GFX Library** and its offered dependencies: drawing primitives.
+- **FluxGarage RoboEyes**: animated eyes and expressions (version 1.1.1 used
+  for this integration; [upstream repository](https://github.com/FluxGarage/RoboEyes)).
+
 Open `firmware/PCFaceTrack/PCFaceTrack.ino`; keep all supporting files in that
 folder. Choose:
 
@@ -137,6 +160,11 @@ folder. Choose:
 
 Upload, then reset if needed. Look for `PCFaceTrack ready` in Serial Monitor.
 No extra servo or face-detection library is required on the ESP32.
+For the display, look for `OLED ready: automatic gaze and face expressions`.
+If the OLED is absent or initialization fails, a diagnostic is printed and
+camera/servo operation continues. The display libraries are still required
+to compile. With this ESP32 package, the OLED uses I2C controller 0 (`Wire`)
+and the camera uses controller 1.
 
 Connect the PC to **RobotArm-Face**, password **FaceCentre32**. These are demo
 credentials embedded in `PCFaceTrack.ino`, not your home Wi-Fi credentials.
@@ -181,6 +209,26 @@ center. Once that works, enable tracking with automatic search:
 
 Other options: `--host 192.168.4.1`, `--headless` (Ctrl+C to exit), `--cpu`,
 and `--model path/to/detector.onnx`. Run `--help` for the command-line options.
+
+## 4. Check the animated eyes
+
+With the normal PC tracker running, show a face and check the happy expression.
+Move left/right, up/down, and diagonally: eyes should follow camera movement.
+Hold still until the camera stops: gaze returns toward center after 300 ms.
+Leave the view for more than one second: eyes should look tired/sad. Returning
+to view makes them happy again. Short detection gaps should not change mood.
+
+The integrated firmware uses automatic moods instead of the standalone test's
+`d/h/t/a` Serial commands. Eye updates run at up to 30 FPS in the main loop;
+servo updates remain in their existing task. Slow HTTP clients can briefly
+pause eye animation.
+
+Hardware operation was confirmed by the user after reversing the display's
+horizontal mapping; tilt already matched. To adapt another mounting orientation,
+change `PAN_TO_SCREEN` or `TILT_TO_SCREEN` in `eyes.cpp`, leaving the servo
+controller signs alone. `CENTER_DELAY_MS` and `SAD_DELAY_MS` set the gaze and
+expression delays. See [the full test checklist](firmware/PCFaceTrack/EYES_TEST.md)
+for search, connection-loss, and recovery checks.
 
 ## Current tuning
 
