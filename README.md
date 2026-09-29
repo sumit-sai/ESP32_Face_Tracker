@@ -23,14 +23,11 @@ ESP32 servos <-- face offsets ---- PC: smoothed face center
 - The ESP32 applies bounded proportional corrections at a 20 ms update interval.
 - Optional search sweeps start after 1.2 seconds without a detected face while
   the PC continues providing fresh observations.
-- Invalid, replayed, or expired observations are rejected. Camera/connection
-  loss stops movement as the last valid frame ages past one second.
 - RoboEyes follows changes in commanded pan/tilt angles, including diagonals
   and search sweeps. Each eye-direction axis returns toward center after
   300 ms without movement; this uses servo commands, not position feedback.
-- Eyes start neutral, become happy when a face is detected, and use the
-  `TIRED` expression as a sad substitute one second after the last detected
-  face's capture timestamp. Automatic blinking remains on; random gaze is off.
+- Eyes start neutral, become happy when a face is detected.
+- Automatic blinking remains on; random gaze is off.
 
 ## Hardware
 
